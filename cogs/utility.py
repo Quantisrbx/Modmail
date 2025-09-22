@@ -666,6 +666,39 @@ class Utility(commands.Cog):
         return await ctx.send(embed=embed)
 
     @commands.command()
+    @checks.has_permissions(PermissionLevel.MODERATOR)
+    async def lastmsg(self, ctx):
+        """Get the last message sent by the ticket opener in this channel."""
+        opener = None
+
+        # Modmail usually stores the opener's ID in the channel.topic
+        if ctx.channel.topic and ctx.channel.topic.isdigit():
+            try:
+                opener = ctx.guild.get_member(int(ctx.channel.topic))
+            except Exception:
+                pass
+
+        if not opener:
+            await ctx.send("❌ Could not determine the ticket opener for this channel.")
+            return
+
+        # Search recent messages for the last one from the opener
+        async for msg in ctx.channel.history(limit=100):
+            if msg.author.id == opener.id:
+                if msg.content:
+                    await ctx.send(
+                        f"**Last message from {opener.mention}:**\n{msg.content}"
+                    )
+                else:
+                    await ctx.send(
+                        "❌ The last message from the opener contained no text (maybe an attachment/embed)."
+                    )
+                return
+
+        await ctx.send("❌ No recent message found from the ticket opener in this channel.")
+
+
+    @commands.command()
     @checks.has_permissions(PermissionLevel.ADMINISTRATOR)
     async def mention(self, ctx, *user_or_role: Union[discord.Role, discord.Member, str]):
         """
