@@ -117,7 +117,81 @@ class Modmail(commands.Cog):
             await self.bot.update_perms(PermissionLevel.REGULAR, -1)
             for owner_id in self.bot.bot_owner_ids:
                 await self.bot.update_perms(PermissionLevel.OWNER, owner_id)
-                
+
+    @commands.group(aliases=["snippets"], invoke_without_command=True)
+    @checks.has_permissions(PermissionLevel.SUPPORTER)
+    async def snippet(self, ctx, *, name: str.lower = None):
+        """
+        Create pre-defined messages for use in threads.
+
+        When `{prefix}snippet` is used by itself, this will retrieve
+        a list of snippets that are currently set. `{prefix}snippet-name` will show what the
+        snippet point to.
+
+        To create a snippet:
+        - `{prefix}snippet add snippet-name A pre-defined text.`
+
+        You can use your snippet in a thread channel
+        with `{prefix}snippet-name`, the message "A pre-defined text."
+        will be sent to the recipient.
+
+        Currently, there is not a built-in anonymous snippet command; however, a workaround
+        is available using `{prefix}alias`. Here is how:
+        - `{prefix}alias add snippet-name anonreply A pre-defined anonymous text.`
+
+        See also `{prefix}alias`.
+        """
+
+        if name is not None:
+            snippet_name = self.bot._resolve_snippet(name)
+
+            if snippet_name is None:
+                embed = create_not_found_embed(name, self.bot.snippets.keys(), "Snippet")
+            else:
+                val = self.bot.snippets[snippet_name]
+                embed = discord.Embed(
+                    title=f'Snippet - "{snippet_name}":', description=val, color=self.bot.main_color
+                )
+            return await ctx.send(embed=embed)
+
+        if not self.bot.snippets:
+            embed = discord.Embed(
+                color=self.bot.error_color, description="You dont have any snippets at the moment."
+            )
+            embed.set_footer(text=f'Check "{self.bot.prefix}help snippet add" to add a snippet.')
+            embed.set_author(name="Snippets", icon_url=self.bot.get_guild_icon(guild=ctx.guild, size=128))
+            return await ctx.send(embed=embed)
+
+        embeds = []
+
+        for i, names in enumerate(zip_longest(*(iter(sorted(self.bot.snippets)),) * 15)):
+            description = format_description(i, names)
+            embed = discord.Embed(color=self.bot.main_color, description=description)
+            embed.set_author(name="Snippets", icon_url=self.bot.get_guild_icon(guild=ctx.guild, size=128))
+            embeds.append(embed)
+
+        session = EmbedPaginatorSession(ctx, *embeds)
+        await session.run()
+
+    @snippet.command(name="raw")
+    @checks.has_permissions(PermissionLevel.SUPPORTER)
+    async def snippet_raw(self, ctx, *, name: str.lower):
+        """
+        View the raw content of a snippet.
+        """
+        snippet_name = self.bot._resolve_snippet(name)
+        if snippet_name is None:
+            embed = create_not_found_embed(name, self.bot.snippets.keys(), "Snippet")
+        else:
+            val = truncate(escape_code_block(self.bot.snippets[snippet_name]), 2048 - 7)
+            embed = discord.Embed(
+                title=f'Raw snippet - "{snippet_name}":',
+                description=f"```\n{val}```",
+                color=self.bot.main_color,
+            )
+
+        return await ctx.send(embed=embed)
+
     @snippet.command(name="add", aliases=["create", "make"])
     @checks.has_permissions(PermissionLevel.SUPPORTER)
     async def snippet_add(self, ctx, name: str.lower, *, value: commands.clean_content):
