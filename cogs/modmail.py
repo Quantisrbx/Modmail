@@ -137,48 +137,34 @@ class Modmail(commands.Cog):
         except Exception:
             return await ctx.send("Invalid message ID. It should be a number like `1419759904067027025`.")
 
-        # Use existing lookup
+        # Try the built-in linked message finder first
         try:
             result = await thread.find_linked_messages(message_id=mid)
-        except ValueError:
-            return await ctx.send(f"Could not find a message with ID `{mid}`.")
-        except Exception as exc:
-            # Log if you have a logger; fallback message for user
-            try:
-                logger.exception("Error while fetching linked message for %s: %s", mid, exc)
-            except Exception:
-                pass
-            return await ctx.send("An error occurred while fetching the message.")
+        except Exception:
+            result = None
 
-        # Normalize the return value from find_linked_messages
         target_msg = None
-        if isinstance(result, tuple):
-            # (message1, linked_or_none)
-            if len(result) >= 2 and result[1]:
-                target_msg = result[1]
-            else:
-                target_msg = result[0]
-        elif isinstance(result, list):
-            # usually [message1, user_msg]
-            if len(result) >= 2:
-                # prefer the non-bot message (recipient)
-                if result[1].author != self.bot.user:
-                    target_msg = result[1]
-                else:
-                    # fallback: pick first non-bot element if present
-                    for m in result:
-                        if m.author != self.bot.user:
-                            target_msg = m
+
+        # If not found, manually search embeds in this channel
+        if not result:
+            async for msg in ctx.channel.history(limit=200):
+                if msg.embeds:
+                    emb = msg.embeds[0]
+                    if emb.author and emb.author.url:
+                        if emb.author.url.endswith(f"#{mid}"):
+                            target_msg = msg
                             break
-                    if target_msg is None:
-                        target_msg = result[0]
-            else:
-                target_msg = result[0]
         else:
-            target_msg = result
+            # Normalize result
+            if isinstance(result, tuple):
+                target_msg = result[0]
+            elif isinstance(result, list):
+                target_msg = result[0]
+            else:
+                target_msg = result
 
         if target_msg is None:
-            return await ctx.send("Could not locate the linked message content.")
+            return await ctx.send(f"Could not find a message with ID `{mid}`.")
 
         # Prefer the message's .content, otherwise fall back to embed description/fields
         content = ""
@@ -203,82 +189,7 @@ class Modmail(commands.Cog):
             await ctx.send(file=discord.File(fp, filename=f"message-{mid}.txt"))
         else:
             await ctx.send(content, allowed_mentions=allowed)
-
-
-    @commands.group(aliases=["snippets"], invoke_without_command=True)
-    @checks.has_permissions(PermissionLevel.SUPPORTER)
-    async def snippet(self, ctx, *, name: str.lower = None):
-        """
-        Create pre-defined messages for use in threads.
-
-        When `{prefix}snippet` is used by itself, this will retrieve
-        a list of snippets that are currently set. `{prefix}snippet-name` will show what the
-        snippet point to.
-
-        To create a snippet:
-        - `{prefix}snippet add snippet-name A pre-defined text.`
-
-        You can use your snippet in a thread channel
-        with `{prefix}snippet-name`, the message "A pre-defined text."
-        will be sent to the recipient.
-
-        Currently, there is not a built-in anonymous snippet command; however, a workaround
-        is available using `{prefix}alias`. Here is how:
-        - `{prefix}alias add snippet-name anonreply A pre-defined anonymous text.`
-
-        See also `{prefix}alias`.
-        """
-
-        if name is not None:
-            snippet_name = self.bot._resolve_snippet(name)
-
-            if snippet_name is None:
-                embed = create_not_found_embed(name, self.bot.snippets.keys(), "Snippet")
-            else:
-                val = self.bot.snippets[snippet_name]
-                embed = discord.Embed(
-                    title=f'Snippet - "{snippet_name}":', description=val, color=self.bot.main_color
-                )
-            return await ctx.send(embed=embed)
-
-        if not self.bot.snippets:
-            embed = discord.Embed(
-                color=self.bot.error_color, description="You dont have any snippets at the moment."
-            )
-            embed.set_footer(text=f'Check "{self.bot.prefix}help snippet add" to add a snippet.')
-            embed.set_author(name="Snippets", icon_url=self.bot.get_guild_icon(guild=ctx.guild, size=128))
-            return await ctx.send(embed=embed)
-
-        embeds = []
-
-        for i, names in enumerate(zip_longest(*(iter(sorted(self.bot.snippets)),) * 15)):
-            description = format_description(i, names)
-            embed = discord.Embed(color=self.bot.main_color, description=description)
-            embed.set_author(name="Snippets", icon_url=self.bot.get_guild_icon(guild=ctx.guild, size=128))
-            embeds.append(embed)
-
-        session = EmbedPaginatorSession(ctx, *embeds)
-        await session.run()
-
-    @snippet.command(name="raw")
-    @checks.has_permissions(PermissionLevel.SUPPORTER)
-    async def snippet_raw(self, ctx, *, name: str.lower):
-        """
-        View the raw content of a snippet.
-        """
-        snippet_name = self.bot._resolve_snippet(name)
-        if snippet_name is None:
-            embed = create_not_found_embed(name, self.bot.snippets.keys(), "Snippet")
-        else:
-            val = truncate(escape_code_block(self.bot.snippets[snippet_name]), 2048 - 7)
-            embed = discord.Embed(
-                title=f'Raw snippet - "{snippet_name}":',
-                description=f"```\n{val}```",
-                color=self.bot.main_color,
-            )
-
-        return await ctx.send(embed=embed)
-
+            
     @snippet.command(name="add", aliases=["create", "make"])
     @checks.has_permissions(PermissionLevel.SUPPORTER)
     async def snippet_add(self, ctx, name: str.lower, *, value: commands.clean_content):
