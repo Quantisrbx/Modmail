@@ -118,6 +118,93 @@ class Modmail(commands.Cog):
             for owner_id in self.bot.bot_owner_ids:
                 await self.bot.update_perms(PermissionLevel.OWNER, owner_id)
 
+    @commands.command(name="text")
+    @checks.has_permissions(PermissionLevel.MODERATOR)
+    async def text(self, ctx, message_id: str):
+        """
+        Retrieve the raw text of a message in a Modmail thread by its Modmail message ID.
+        Usage: !text <message_id>
+        Moderator+ only.
+        """
+        # Ensure we're inside a Modmail thread channel
+        thread = await self.bot.threads.find(channel=ctx.channel)
+        if thread is None:
+            return await ctx.send("This command can only be used inside a Modmail thread channel.")
+
+        # Validate/normalize message_id
+        try:
+            mid = int(str(message_id).strip())
+        except Exception:
+            return await ctx.send("Invalid message ID. It should be a number like `1419759904067027025`.")
+
+        # Use existing lookup
+        try:
+            result = await thread.find_linked_messages(message_id=mid)
+        except ValueError:
+            return await ctx.send(f"Could not find a message with ID `{mid}`.")
+        except Exception as exc:
+            # Log if you have a logger; fallback message for user
+            try:
+                logger.exception("Error while fetching linked message for %s: %s", mid, exc)
+            except Exception:
+                pass
+            return await ctx.send("An error occurred while fetching the message.")
+
+        # Normalize the return value from find_linked_messages
+        target_msg = None
+        if isinstance(result, tuple):
+            # (message1, linked_or_none)
+            if len(result) >= 2 and result[1]:
+                target_msg = result[1]
+            else:
+                target_msg = result[0]
+        elif isinstance(result, list):
+            # usually [message1, user_msg]
+            if len(result) >= 2:
+                # prefer the non-bot message (recipient)
+                if result[1].author != self.bot.user:
+                    target_msg = result[1]
+                else:
+                    # fallback: pick first non-bot element if present
+                    for m in result:
+                        if m.author != self.bot.user:
+                            target_msg = m
+                            break
+                    if target_msg is None:
+                        target_msg = result[0]
+            else:
+                target_msg = result[0]
+        else:
+            target_msg = result
+
+        if target_msg is None:
+            return await ctx.send("Could not locate the linked message content.")
+
+        # Prefer the message's .content, otherwise fall back to embed description/fields
+        content = ""
+        if getattr(target_msg, "content", None):
+            content = target_msg.content
+        else:
+            embeds = getattr(target_msg, "embeds", None) or []
+            if embeds:
+                emb = embeds[0]
+                content = getattr(emb, "description", "") or ""
+                if not content and getattr(emb, "fields", None):
+                    content = "\n".join(f"{f.name}: {f.value}" for f in emb.fields)
+
+        if not content:
+            return await ctx.send("That message has no text content to display.")
+
+        # Send plain text (prevent pings). If very long, send as .txt file.
+        allowed = discord.AllowedMentions(everyone=False, users=False, roles=False)
+        if len(content) > 1900:
+            import io
+            fp = io.BytesIO(content.encode("utf-8"))
+            await ctx.send(file=discord.File(fp, filename=f"message-{mid}.txt"))
+        else:
+            await ctx.send(content, allowed_mentions=allowed)
+
+
     @commands.group(aliases=["snippets"], invoke_without_command=True)
     @checks.has_permissions(PermissionLevel.SUPPORTER)
     async def snippet(self, ctx, *, name: str.lower = None):
