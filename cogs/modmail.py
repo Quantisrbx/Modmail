@@ -189,7 +189,8 @@ class Modmail(commands.Cog):
             await ctx.send(file=discord.File(fp, filename=f"message-{mid}.txt"))
         else:
             await ctx.send(content, allowed_mentions=allowed)
-            
+
+    
     @snippet.command(name="add", aliases=["create", "make"])
     @checks.has_permissions(PermissionLevel.SUPPORTER)
     async def snippet_add(self, ctx, name: str.lower, *, value: commands.clean_content):
