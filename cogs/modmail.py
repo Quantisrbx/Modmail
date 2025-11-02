@@ -2287,26 +2287,44 @@ class Modmail(commands.Cog):
     async def on_thread_ready(self, thread):
         """
         Automatically sends a greeting message from the bot when a new Modmail thread is opened.
+        Attempts to use the webhook-style thread.reply() so it appears as the bot.
+        Falls back to a direct DM if necessary.
         """
-
         greeting_message = (
             "Thank you for contacting **Quantis Support**. "
             "Please await a support agent to assist you shortly."
         )
 
+        # Make a message-like object that mimics ctx.message sufficiently for thread.reply()
+        fake_msg = type("FakeMsg", (), {})()
+        fake_msg.content = greeting_message
+        fake_msg.author = self.bot.user
+
         try:
-            # Create a fake context-like object so the reply system treats this as a bot message
-            fake_ctx = type("ctx", (), {
-                "author": self.bot.user,
-                "message": type("msg", (), {"content": greeting_message})
-            })
+            # Primary: use the same webhook-style system (should render like a staff/bot reply)
+            await thread.reply(fake_msg)
+            logger.info(f"Sent automatic greeting via thread.reply() to {thread.recipient}.")
+            return
+        except Exception as exc:
+            logger.debug(f"thread.reply failed for greeting on thread {getattr(thread, 'id', 'unknown')}: {exc}")
 
-            # Send using Modmail’s webhook-style system
-            await thread.reply(fake_ctx)
+        # Fallback: try sending a DM directly to the recipient (ensures message is delivered)
+        try:
+            recipient = getattr(thread, "recipient", None)
+            if recipient is None:
+                # sometimes thread.recipients exists
+                recipients = getattr(thread, "recipients", None)
+                recipient = recipients[0] if recipients else None
 
-            logger.info(f"Greeting message sent automatically for new thread with user {thread.recipient}.")
-        except Exception as e:
-            logger.warning(f"Failed to send automatic greeting for thread {thread.id}: {e}")
+            if recipient:
+                await recipient.send(greeting_message)
+                logger.info(f"Sent automatic greeting via direct DM to {recipient}.")
+            else:
+                logger.warning(f"Could not find recipient for thread {getattr(thread, 'id', 'unknown')}.")
+        except Exception as exc:
+            logger.warning(
+                f"Failed to send automatic greeting for thread {getattr(thread, 'id', 'unknown')}: {exc}"
+            )
 
 
     @commands.command()
