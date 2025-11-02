@@ -2283,49 +2283,28 @@ class Modmail(commands.Cog):
         sent_emoji, _ = await self.bot.retrieve_emoji()
         await self.bot.add_reaction(ctx.message, sent_emoji)
 
-    @commands.Cog.listener()
-    async def on_thread_ready(self, thread):
+
+    @commands.command()
+    @checks.has_permissions(PermissionLevel.SUPPORTER)
+    @checks.thread_only()
+    async def startticket(self, ctx):
         """
-        Automatically sends a greeting message from the bot when a new Modmail thread is opened.
-        Attempts to use the webhook-style thread.reply() so it appears as the bot.
-        Falls back to a direct DM if necessary.
+        Send a thank-you message to the ticket recipient using the same webhook-style
+        staff reply system. This does NOT close the ticket.
         """
-        greeting_message = (
-            "Thank you for contacting **Quantis Support**. "
-            "Please await a support agent to assist you shortly."
+        start_message = (
+            "Thankyou for contacting Quantis Support."
+            "Please await a support agent to respond and they will assist you."
         )
 
-        # Make a message-like object that mimics ctx.message sufficiently for thread.reply()
-        fake_msg = type("FakeMsg", (), {})()
-        fake_msg.content = greeting_message
-        fake_msg.author = self.bot.user
+        # Use the same method the other reply commands use so it goes via the webhook-style DM
+        ctx.message.content = start_message
+        async with ctx.typing():
+            await ctx.thread.reply(ctx.message)
 
-        try:
-            # Primary: use the same webhook-style system (should render like a staff/bot reply)
-            await thread.reply(fake_msg)
-            logger.info(f"Sent automatic greeting via thread.reply() to {thread.recipient}.")
-            return
-        except Exception as exc:
-            logger.debug(f"thread.reply failed for greeting on thread {getattr(thread, 'id', 'unknown')}: {exc}")
-
-        # Fallback: try sending a DM directly to the recipient (ensures message is delivered)
-        try:
-            recipient = getattr(thread, "recipient", None)
-            if recipient is None:
-                # sometimes thread.recipients exists
-                recipients = getattr(thread, "recipients", None)
-                recipient = recipients[0] if recipients else None
-
-            if recipient:
-                await recipient.send(greeting_message)
-                logger.info(f"Sent automatic greeting via direct DM to {recipient}.")
-            else:
-                logger.warning(f"Could not find recipient for thread {getattr(thread, 'id', 'unknown')}.")
-        except Exception as exc:
-            logger.warning(
-                f"Failed to send automatic greeting for thread {getattr(thread, 'id', 'unknown')}: {exc}"
-            )
-
+        # Add the "sent" reaction to acknowledge to the staff member
+        sent_emoji, _ = await self.bot.retrieve_emoji()
+        await self.bot.add_reaction(ctx.message, sent_emoji)
 
     @commands.command()
     @checks.has_permissions(PermissionLevel.ADMINISTRATOR)
