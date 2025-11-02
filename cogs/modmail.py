@@ -2283,6 +2283,32 @@ class Modmail(commands.Cog):
         sent_emoji, _ = await self.bot.retrieve_emoji()
         await self.bot.add_reaction(ctx.message, sent_emoji)
 
+    @commands.Cog.listener()
+    async def on_thread_ready(self, thread):
+        """
+        Automatically sends a greeting message from the bot when a new Modmail thread is opened.
+        """
+
+        greeting_message = (
+            "Thank you for contacting **Quantis Support**. "
+            "Please await a support agent to assist you shortly."
+        )
+
+        try:
+            # Create a fake context-like object so the reply system treats this as a bot message
+            fake_ctx = type("ctx", (), {
+                "author": self.bot.user,
+                "message": type("msg", (), {"content": greeting_message})
+            })
+
+            # Send using Modmail’s webhook-style system
+            await thread.reply(fake_ctx)
+
+            logger.info(f"Greeting message sent automatically for new thread with user {thread.recipient}.")
+        except Exception as e:
+            logger.warning(f"Failed to send automatic greeting for thread {thread.id}: {e}")
+
+
     @commands.command()
     @checks.has_permissions(PermissionLevel.ADMINISTRATOR)
     async def isenable(self, ctx):
