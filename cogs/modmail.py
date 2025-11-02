@@ -2283,29 +2283,6 @@ class Modmail(commands.Cog):
         sent_emoji, _ = await self.bot.retrieve_emoji()
         await self.bot.add_reaction(ctx.message, sent_emoji)
 
-
-    @commands.command()
-    @checks.has_permissions(PermissionLevel.SUPPORTER)
-    @checks.thread_only()
-    async def startticket(self, ctx):
-        """
-        Send a thank-you message to the ticket recipient using the same webhook-style
-        staff reply system. This does NOT close the ticket.
-        """
-        start_message = (
-            "Thankyou for contacting Quantis Support."
-            "Please await a support agent to respond and they will assist you."
-        )
-
-        # Use the same method the other reply commands use so it goes via the webhook-style DM
-        ctx.message.content = start_message
-        async with ctx.typing():
-            await ctx.thread.reply(ctx.message)
-
-        # Add the "sent" reaction to acknowledge to the staff member
-        sent_emoji, _ = await self.bot.retrieve_emoji()
-        await self.bot.add_reaction(ctx.message, sent_emoji)
-
     @commands.command()
     @checks.has_permissions(PermissionLevel.ADMINISTRATOR)
     async def isenable(self, ctx):
