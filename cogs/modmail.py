@@ -2259,6 +2259,32 @@ class Modmail(commands.Cog):
         return await ctx.send(embed=embed)
 
     @commands.command()
+    @checks.has_permissions(PermissionLevel.SUPPORTER)
+    @checks.thread_only()
+    async def endticket(self, ctx):
+        """
+        Sends a thank-you message to the user in the current Modmail thread
+        using the same webhook-style DM method as normal staff replies.
+        This does NOT close the ticket automatically.
+        """
+
+        thread = ctx.thread
+        closing_message = (
+            "Amazing! Thank you for contacting Quantis Support, we do really hope we have fulfilled your "
+            "questions, suggestions or concerns to the best of our abilities.\n\n"
+            "Please feel free to leave feedback after the ticket has been closed in a public channel "
+            "so we can improve our support systems, our support agents and our services overall.\n\n"
+            "We appreciate you opening this ticket and we hope you have a great rest of your day!"
+        )
+
+        # Use the same method Modmail uses for sending staff replies
+        await thread.send(closing_message, from_mod=ctx.author)
+
+        sent_emoji, _ = await self.bot.retrieve_emoji()
+        await self.bot.add_reaction(ctx.message, sent_emoji)
+
+
+    @commands.command()
     @checks.has_permissions(PermissionLevel.ADMINISTRATOR)
     async def isenable(self, ctx):
         """
