@@ -2352,6 +2352,39 @@ class Modmail(commands.Cog):
         await self.bot.add_reaction(ctx.message, sent_emoji)
 
     @commands.command()
+    @checks.has_permissions(PermissionLevel.SUPPORTER)
+    @checks.thread_only()
+    async def supportapp(self, ctx):
+        """
+        Sends an enmployment message to the user to say they have passed there application
+        """
+        supportapp_message = (
+            "Quantis | Support Team Application\n\n"
+            "Please answer all of the following questions with complete honesty, your answers are not documented. "
+            "Please await a response from a member of staff after submitting your response. Thank you and good luck!\n\n"
+            "▐ ▶ What is your Roblox Username & Discord Username?\n\n"
+            "▐ ▶ What is your Date of Birth?\n\n"
+            "▐ ▶ Have you ever worked in support positions before?\n\n"
+            "▐ ▶ Have you worked for Quantis before?\n\n"
+            "▐ ▶ Why do you want to work in the Support Team?\n\n"
+            "▐ ▶ What is the definition of a Support Team? *(IN YOUR OWN WORDS)*\n\n"
+            "▐ ▶ Somebody opens a ticket, they claim somebody is about to raid our server, what course of action do you take and why?\n\n"
+            "▐ ▶ Have you ever been suspended, blacklisted and or banned from any community and or Discord with 1000 members or above? "
+            "If so, when and why?\n\n"
+            "▣ Is there any additional information you would like to add? "
+            "*** (E.g. disabilities, preferences in work environments, etc)***"
+        )
+
+        # Use the same method the other reply commands use so it goes via the webhook-style DM
+        ctx.message.content = supportapp_message
+        async with ctx.typing():
+            await ctx.thread.reply(ctx.message)
+
+        # Add the "sent" reaction to acknowledge to the staff member
+        sent_emoji, _ = await self.bot.retrieve_emoji()
+        await self.bot.add_reaction(ctx.message, sent_emoji)
+
+    @commands.command()
     @checks.has_permissions(PermissionLevel.ADMINISTRATOR)
     async def isenable(self, ctx):
         """
