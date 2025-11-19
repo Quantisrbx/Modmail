@@ -2290,7 +2290,7 @@ class Modmail(commands.Cog):
         """
         Sends an enmployment message to the user to say they have passed there application
         """
-        closing_message = (
+        employment_message = (
             "Congratulations, you've passed!\n\n"
             "Upon employment into Quantis, we ask all applicants to sign a form of agreement to give their word "
             "that they will work, dedicate and contribute to Quantis and the job Quantis has provided them.\n\n"
@@ -2304,7 +2304,46 @@ class Modmail(commands.Cog):
         )
 
         # Use the same method the other reply commands use so it goes via the webhook-style DM
-        ctx.message.content = closing_message
+        ctx.message.content = employment_message
+        async with ctx.typing():
+            await ctx.thread.reply(ctx.message)
+
+        # Add the "sent" reaction to acknowledge to the staff member
+        sent_emoji, _ = await self.bot.retrieve_emoji()
+        await self.bot.add_reaction(ctx.message, sent_emoji)
+
+    @commands.command()
+    @checks.has_permissions(PermissionLevel.SUPPORTER)
+    @checks.thread_only()
+    async def devapp(self, ctx):
+        """
+        Sends an enmployment message to the user to say they have passed there application
+        """
+        devapp_message = (
+            "Quantis | Development Team Application\n\n"
+            "Please answer all of the following questions with complete honesty, your answers are not documented. "
+            "Please ping the ticket handler once you've finished, thank you and good luck!\n\n"
+            "▐ ▶ What kind of developer are you? (Scripter, Builder, UI Designer, etc)\n\n"
+            "▐ ▶ What experience do you have?\n\n"
+            "▐ ▶ Do you understand you're required to go through a trial?\n\n"
+            "▐ ▶ Can you provide proof of previous employment (If there is any)\n\n"
+            "▐ ▶ Why do you want to work for us as a Developer?\n\n"
+            "▐ ▶ Have you worked on any other big or small projects?\n\n"
+            "▐ ▶ How long have you been a developer for?\n\n"
+            "▣ Is there any additional information you would like to add? "
+            "*** (E.g. disabilities, preferences in work environments, etc)***\n\n"
+            "▣ What are your opinions on this interview? "
+            "(We accept criticism, honesty and your opinion, anything directly rude will not be listened too)\n\n"
+            "*- Very bad\n"
+            "- Bad\n"
+            "- Alright\n"
+            "- Good\n"
+            "- Spectacular\n"
+            "- Add your own opinion*"
+        )
+
+        # Use the same method the other reply commands use so it goes via the webhook-style DM
+        ctx.message.content = devapp_message
         async with ctx.typing():
             await ctx.thread.reply(ctx.message)
 
