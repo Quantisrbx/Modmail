@@ -2309,7 +2309,7 @@ class Modmail(commands.Cog):
         )
 
         # Use the same method the other reply commands use so it goes via the webhook-style DM
-        ctx.message.content = employment_message
+        ctx.message.content = closing_message
         async with ctx.typing():
             await ctx.thread.reply(ctx.message)
 
