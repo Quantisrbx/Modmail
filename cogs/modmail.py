@@ -2284,6 +2284,40 @@ class Modmail(commands.Cog):
         await self.bot.add_reaction(ctx.message, sent_emoji)
 
     @commands.command()
+    @checks.has_permissions(PermissionLevel.SUPPORTER)
+    @checks.thread_only()
+    async def employment(self, ctx):
+        """
+        Sends an enmployment message to the user to say they have passed there application
+        """
+        closing_message = (
+            "Amazing! Thank you for contacting Quantis Support, we do really hope we have fulfilled your "
+            "questions, suggestions or concerns to the best of our abilities.\n\n"
+            "Please feel free to leave feedback after the ticket has been closed in a public channel so we can "
+            "improve our support systems, our support agents and our services overall.\n\n"
+            "We appreciate you opening this ticket and we hope you have a great rest of your day!\n\n"
+            "Congratulations, you've passed!\n\n"
+            "Upon employment into Quantis, we ask all applicants to sign a form of agreement to give their word "
+            "that they will work, dedicate and contribute to Quantis and the job Quantis has provided them.\n\n"
+            "We expect you to fill in the form below and accept the terms. Failing to do so will result in you not "
+            "receiving the original position you've applied for. Beyond accepting the terms it is necessary for you "
+            "to show proof to be ranked.\n\n"
+            "While you're here, feel free to join our group if your job includes pay or any payment opportunities "
+            "arrive in the future.\n\n"
+            "https://forms.gle/8BE77zpe3DCJyY8u8\n"
+            "https://www.roblox.com/groups/16006471/Quantis-Rbx#!/about"
+        )
+
+        # Use the same method the other reply commands use so it goes via the webhook-style DM
+        ctx.message.content = employment_message
+        async with ctx.typing():
+            await ctx.thread.reply(ctx.message)
+
+        # Add the "sent" reaction to acknowledge to the staff member
+        sent_emoji, _ = await self.bot.retrieve_emoji()
+        await self.bot.add_reaction(ctx.message, sent_emoji)
+
+    @commands.command()
     @checks.has_permissions(PermissionLevel.ADMINISTRATOR)
     async def isenable(self, ctx):
         """
