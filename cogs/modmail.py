@@ -2291,11 +2291,6 @@ class Modmail(commands.Cog):
         Sends an enmployment message to the user to say they have passed there application
         """
         closing_message = (
-            "Amazing! Thank you for contacting Quantis Support, we do really hope we have fulfilled your "
-            "questions, suggestions or concerns to the best of our abilities.\n\n"
-            "Please feel free to leave feedback after the ticket has been closed in a public channel so we can "
-            "improve our support systems, our support agents and our services overall.\n\n"
-            "We appreciate you opening this ticket and we hope you have a great rest of your day!\n\n"
             "Congratulations, you've passed!\n\n"
             "Upon employment into Quantis, we ask all applicants to sign a form of agreement to give their word "
             "that they will work, dedicate and contribute to Quantis and the job Quantis has provided them.\n\n"
